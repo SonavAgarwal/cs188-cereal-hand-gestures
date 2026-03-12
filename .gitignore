@@ -1,0 +1,5 @@
+.venv/
+video/.venv/
+__pycache__/
+*.pyc
+video/gesture_events.jsonl
