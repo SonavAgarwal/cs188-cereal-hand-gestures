@@ -17,11 +17,11 @@ from mediapipe.tasks.python.vision.hand_landmarker import (
     HandLandmarksConnections,
 )
 
+from gesture_recognizer import load_gesture_templates, recognize_gesture
 from gesture_pipeline import (
     GestureSmoother,
     GestureStateMachine,
     UNKNOWN_GESTURE,
-    classify_gesture,
 )
 
 
@@ -88,6 +88,7 @@ def main() -> None:
         )
     )
 
+    templates = load_gesture_templates()
     smoother = GestureSmoother(window_size=WINDOW_SIZE, min_votes=MIN_VOTES)
     state_machine = GestureStateMachine()
     frame_index = 0
@@ -115,7 +116,11 @@ def main() -> None:
                 if results.hand_landmarks and results.handedness:
                     landmarks = results.hand_landmarks[0]
                     handedness = results.handedness[0][0].category_name or "unknown"
-                    raw_gesture, raw_confidence = classify_gesture(landmarks, handedness)
+                    raw_gesture, raw_confidence = recognize_gesture(
+                        landmarks,
+                        handedness,
+                        templates,
+                    )
                     draw_hand_landmarks(frame, landmarks)
 
                 gesture = smoother.update(raw_gesture)
