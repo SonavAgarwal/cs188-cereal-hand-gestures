@@ -3,3 +3,5 @@ video/.venv/
 __pycache__/
 *.pyc
 video/gesture_events.jsonl
+# Excluded: causes git indexing errors (corrupted/truncated file)
+project-website/app/favicon.ico

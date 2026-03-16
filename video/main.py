@@ -23,10 +23,15 @@ from gesture_pipeline import (
     GestureStateMachine,
     UNKNOWN_GESTURE,
 )
+from tcp import ConnectionManager
 
 
 CAMERA_INDEX = 0
 OUTPUT_PATH = "gesture_events.jsonl"
+# TCP config: set TCP_IP to None to disable network streaming
+TCP_IP = "127.0.0.1"  # Use "0.0.0.0" for server to accept any interface
+TCP_PORT = 5000
+TCP_MODE = "server"   # "server" = wait for clients to connect; "client" = connect to a server
 MODEL_PATH = Path(__file__).with_name("hand_landmarker.task")
 WINDOW_SIZE = 5
 MIN_VOTES = 3
@@ -93,6 +98,12 @@ def main() -> None:
     state_machine = GestureStateMachine()
     frame_index = 0
 
+    # Optional TCP connection for streaming gesture events over the network
+    tcp = None
+    if TCP_IP is not None and TCP_PORT is not None:
+        tcp = ConnectionManager(ip=TCP_IP, port=TCP_PORT, mode=TCP_MODE)
+        print(f"TCP {TCP_MODE} listening on {TCP_IP}:{TCP_PORT}")
+
     try:
         with open(OUTPUT_PATH, "w", encoding="utf-8", buffering=1) as output_file:
             while True:
@@ -136,6 +147,9 @@ def main() -> None:
                 }
                 event_json = json.dumps(event)
                 output_file.write(event_json + "\n")
+                # Stream gesture events over TCP if connected
+                if tcp is not None:
+                    tcp.sendall(tcp.encode_str(event_json))
                 draw_overlay(frame, event_json)
                 cv2.imshow("gesture-events", frame)
                 key = cv2.waitKey(1) & 0xFF
