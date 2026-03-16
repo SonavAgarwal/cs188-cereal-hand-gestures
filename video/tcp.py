@@ -36,6 +36,22 @@ class ConnectionManager:
         else:
             raise ValueError("mode must be 'server' or 'client'")
 
+    def wait_for_client(self, blocking=True):
+        """
+        Server only: wait for a client to connect.
+        Call this before the main loop so the connection is ready.
+        """
+        if self.mode != 'server' or self.conn is not None:
+            return True
+        if blocking:
+            self.server.setblocking(True)
+            self.conn, self.addr = self.server.accept()
+            self.conn.setblocking(False)
+            self.server.setblocking(False)
+            print("Connection established!")
+            return True
+        return self._ensure_connection()
+
     def _ensure_connection(self):
         """Establish connection if not yet connected. Returns True if connected."""
         if self.conn is not None:

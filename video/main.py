@@ -103,6 +103,9 @@ def main() -> None:
     if TCP_IP is not None and TCP_PORT is not None:
         tcp = ConnectionManager(ip=TCP_IP, port=TCP_PORT, mode=TCP_MODE)
         print(f"TCP {TCP_MODE} listening on {TCP_IP}:{TCP_PORT}")
+        if TCP_MODE == "server":
+            print("Waiting for client connection...")
+            tcp.wait_for_client(blocking=True)
 
     try:
         with open(OUTPUT_PATH, "w", encoding="utf-8", buffering=1) as output_file:
