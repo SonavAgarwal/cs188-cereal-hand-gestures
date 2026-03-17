@@ -26,10 +26,11 @@ from gesture_pipeline import (
 from tcp import ConnectionManager
 
 
-CAMERA_INDEX = 0
+CAMERA_INDEX = 1 # TODO: Change to 0 or other index if you have multiple cameras or want to use the default webcam
 OUTPUT_PATH = "gesture_events.jsonl"
 # TCP config: set TCP_IP to None to disable network streaming
-TCP_IP = "127.0.0.1"  # Use "0.0.0.0" for server to accept any interface
+TCP_IP = None  # TODO: Comment out if you want to enable TCP streaming
+# TCP_IP = "127.0.0.1"  # Use "0.0.0.0" for server to accept any interface
 TCP_PORT = 5000
 TCP_MODE = "server"   # "server" = wait for clients to connect; "client" = connect to a server
 MODEL_PATH = Path(__file__).with_name("hand_landmarker.task")
@@ -45,20 +46,40 @@ HAND_CONNECTIONS = [
 ]
 
 
-def draw_overlay(frame, event_json: str) -> None:
-    wrapped_lines = textwrap.wrap(event_json, width=72)[:3]
-    banner_height = 12 + (len(wrapped_lines) * 24)
-    cv2.rectangle(frame, (0, 0), (frame.shape[1], banner_height), (24, 24, 24), -1)
-    for index, line in enumerate(wrapped_lines):
-        cv2.putText(
-            frame,
-            line,
-            (12, 22 + (index * 24)),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.52,
-            (255, 255, 255),
-            1,
-        )
+STATE_COLORS = {
+    "idle": (180, 180, 180),      # gray
+    "pending": (0, 200, 255),     # orange/yellow
+    "active": (0, 255, 100),      # green
+}
+
+
+def draw_overlay(frame, state_info: dict, event_json: str) -> None:
+    state = state_info.get("state", "idle")
+    active = state_info.get("active_command")
+    pending = state_info.get("pending_command")
+    color = STATE_COLORS.get(state, (255, 255, 255))
+
+    if state == "idle":
+        status_text = "Waiting for gesture..."
+    elif state == "pending":
+        status_text = f"Detected: {pending} -- show thumbs up to confirm"
+    elif state == "active":
+        status_text = f"Active command: {active}"
+        if pending:
+            status_text += f"  |  Pending: {pending}"
+    else:
+        status_text = state
+
+    # Status banner
+    cv2.rectangle(frame, (0, 0), (frame.shape[1], 36), (24, 24, 24), -1)
+    cv2.putText(frame, status_text, (12, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.65, color, 2)
+
+    # JSON detail below
+    wrapped_lines = textwrap.wrap(event_json, width=72)[:2]
+    y_offset = 40
+    for line in wrapped_lines:
+        cv2.putText(frame, line, (12, y_offset + 16), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (200, 200, 200), 1)
+        y_offset += 18
 
 
 def draw_hand_landmarks(frame, landmarks) -> None:
@@ -138,13 +159,15 @@ def main() -> None:
                     draw_hand_landmarks(frame, landmarks)
 
                 gesture = smoother.update(raw_gesture)
-                previous_gesture = state_machine.update(gesture)
+                state_info = state_machine.update(gesture)
                 event = {
                     "frame": frame_index,
                     "timestamp": round(timestamp, 3),
                     "gesture": gesture,
                     "raw_gesture": raw_gesture,
-                    "previous_gesture": previous_gesture,
+                    "state": state_info["state"],
+                    "active_command": state_info["active_command"],
+                    "pending_command": state_info["pending_command"],
                     "handedness": handedness,
                     "confidence": round(raw_confidence, 3),
                 }
@@ -153,7 +176,7 @@ def main() -> None:
                 # Stream gesture events over TCP if connected
                 if tcp is not None:
                     tcp.sendall(tcp.encode_str(event_json))
-                draw_overlay(frame, event_json)
+                draw_overlay(frame, state_info, event_json)
                 cv2.imshow("gesture-events", frame)
                 key = cv2.waitKey(1) & 0xFF
                 if key in (27, ord("q")):
