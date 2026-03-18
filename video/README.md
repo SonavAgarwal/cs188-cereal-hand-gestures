@@ -36,7 +36,9 @@ Gesture events can be streamed over TCP in addition to the JSON file. Configure 
 | `TCP_PORT` | Port number (e.g. `5000`).                                                 |
 | `TCP_MODE` | `"server"` = wait for clients to connect; `"client"` = connect to a server. |
 
-**Server mode** (default): Run `main.py` first; it listens for connections. Other apps connect to it.
+By default, `main.py` starts a localhost TCP server on `127.0.0.1:5000`. Set `TCP_IP = None` if you want to disable streaming entirely.
+
+**Server mode** (default): Run `main.py` first; it listens for connections. Other apps can connect at any time while the camera loop is running.
 
 **Client mode**: Run `main.py`; it connects to an existing server at `TCP_IP:TCP_PORT`.
 
@@ -100,5 +102,5 @@ The JSON stores the landmark points and a `relative_points` version centered on 
 ## Output
 
 ```json
-{"frame":42,"timestamp":1712345678.123,"gesture":"pinch","raw_gesture":"pinch","previous_gesture":"unknown","handedness":"Right","confidence":0.88}
+{"frame":42,"timestamp":1712345678.123,"gesture":"unknown","smoothed_gesture":"sign_b","raw_gesture":"sign_b","state":"pending","active_command":null,"pending_command":"sign_b","handedness":"Right","confidence":0.88}
 ```

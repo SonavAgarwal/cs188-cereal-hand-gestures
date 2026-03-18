@@ -1,8 +1,17 @@
 import socket
-import numpy as np
 
 # Length of the message-size header in bytes (little-endian uint32)
 LENGTH_LENGTH = 4
+
+
+def _require_numpy():
+    try:
+        import numpy as np
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(
+            "NumPy is required for array TCP messages."
+        ) from exc
+    return np
 
 
 class ConnectionManager:
@@ -14,6 +23,7 @@ class ConnectionManager:
         self.mode = mode  # 'server' or 'client'
         self.buffer = b''
         self.msg_len = None
+        self.addr = None
         # Shape for array messages; use (-1,) to infer. Ignored for string messages.
         self.shape = shape if shape is not None else (-1,)
 
@@ -23,18 +33,34 @@ class ConnectionManager:
             self.server.bind((self.ip, self.port))
             self.server.listen(1)
             self.server.setblocking(False)
+            self.client = None
             self.conn = None
         elif self.mode == 'client':
-            self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server = None
+            self.client = None
             self.conn = None
-            try:
-                self.client.connect((self.ip, self.port))
-                self.conn = self.client
-                self.conn.setblocking(False)
-            except ConnectionRefusedError:
-                pass
+            self._ensure_connection()
         else:
             raise ValueError("mode must be 'server' or 'client'")
+
+    def _create_client_socket(self):
+        return socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    def _reset_connection(self):
+        conn = self.conn
+        self.conn = None
+        self.addr = None
+        self.msg_len = None
+        self.buffer = b''
+
+        if conn is not None:
+            try:
+                conn.close()
+            except OSError:
+                pass
+
+        if self.mode == 'client':
+            self.client = None
 
     def wait_for_client(self, blocking=True):
         """
@@ -61,12 +87,20 @@ class ConnectionManager:
                 self.conn, self.addr = self.server.accept()
                 self.conn.setblocking(False)
             else:
+                if self.client is None:
+                    self.client = self._create_client_socket()
                 self.client.connect((self.ip, self.port))
                 self.conn = self.client
                 self.conn.setblocking(False)
             print("Connection established!")
             return True
         except (BlockingIOError, ConnectionRefusedError, OSError):
+            if self.mode == 'client' and self.client is not None and self.conn is None:
+                try:
+                    self.client.close()
+                except OSError:
+                    pass
+                self.client = None
             return False
 
     def sendall(self, msg):
@@ -77,6 +111,7 @@ class ConnectionManager:
             self.conn.sendall(msg)
             return True
         except (BrokenPipeError, ConnectionResetError, OSError):
+            self._reset_connection()
             return False
 
     def recv(self, buffer_msg=True):
@@ -85,7 +120,13 @@ class ConnectionManager:
             return False
         try:
             msg = self.conn.recv(2**20)  # 1MB max per call (2**32 is excessive)
-        except (BlockingIOError, ConnectionResetError, OSError):
+        except BlockingIOError:
+            return False
+        except (ConnectionResetError, OSError):
+            self._reset_connection()
+            return False
+        if not msg:
+            self._reset_connection()
             return False
         if buffer_msg:
             self.buffer += msg
@@ -102,8 +143,11 @@ class ConnectionManager:
             out = self.generate_header(out) + out
         return out
 
-    def encode_arr(self, arr, dtype=np.float64, header=True):
+    def encode_arr(self, arr, dtype=None, header=True):
         """Encode a NumPy array to bytes, optionally with length header."""
+        np = _require_numpy()
+        if dtype is None:
+            dtype = np.float64
         out = arr.astype(dtype).tobytes()
         if header:
             out = self.generate_header(out) + out
@@ -146,10 +190,12 @@ class ConnectionManager:
                     if msg_type == 'string':
                         msgs.append(payload.decode(encoding))
                     else:
+                        np = _require_numpy()
                         arr = np.frombuffer(payload, dtype=np.float64)
                         msgs.append(arr.reshape(shape))
             else:
                 # Fixed-size records (arrays only)
+                np = _require_numpy()
                 if shape != (-1,):
                     record_size = 8 * np.abs(np.prod(shape))
                 else:

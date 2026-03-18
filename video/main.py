@@ -32,8 +32,7 @@ DEFAULT_CAMERA_INDEX = 0
 MAX_CAMERA_INDEX_TO_SCAN = 4
 OUTPUT_PATH = "gesture_events.jsonl"
 # TCP config: set TCP_IP to None to disable network streaming
-TCP_IP = None  # TODO: Comment out if you want to enable TCP streaming
-# TCP_IP = "127.0.0.1"  # Use "0.0.0.0" for server to accept any interface
+TCP_IP = "127.0.0.1"  # Use "0.0.0.0" for server to accept any interface
 TCP_PORT = 5000
 TCP_MODE = "server"   # "server" = wait for clients to connect; "client" = connect to a server
 MODEL_PATH = Path(__file__).with_name("hand_landmarker.task")
@@ -167,10 +166,10 @@ def main() -> None:
     tcp = None
     if TCP_IP is not None and TCP_PORT is not None:
         tcp = ConnectionManager(ip=TCP_IP, port=TCP_PORT, mode=TCP_MODE)
-        print(f"TCP {TCP_MODE} listening on {TCP_IP}:{TCP_PORT}")
         if TCP_MODE == "server":
-            print("Waiting for client connection...")
-            tcp.wait_for_client(blocking=True)
+            print(f"TCP server ready on {TCP_IP}:{TCP_PORT}")
+        else:
+            print(f"TCP client connecting to {TCP_IP}:{TCP_PORT}")
 
     try:
         with open(OUTPUT_PATH, "w", encoding="utf-8", buffering=1) as output_file:
@@ -202,12 +201,14 @@ def main() -> None:
                     )
                     draw_hand_landmarks(frame, landmarks)
 
-                gesture = smoother.update(raw_gesture)
-                state_info = state_machine.update(gesture)
+                smoothed_gesture = smoother.update(raw_gesture)
+                state_info = state_machine.update(smoothed_gesture)
+                emitted_gesture = state_info["active_command"] or UNKNOWN_GESTURE
                 event = {
                     "frame": frame_index,
                     "timestamp": round(timestamp, 3),
-                    "gesture": gesture,
+                    "gesture": emitted_gesture,
+                    "smoothed_gesture": smoothed_gesture,
                     "raw_gesture": raw_gesture,
                     "state": state_info["state"],
                     "active_command": state_info["active_command"],
