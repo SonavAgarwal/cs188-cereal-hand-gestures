@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import argparse
 import json
+import os
 from pathlib import Path
 import time
 import textwrap
@@ -26,10 +28,12 @@ from gesture_pipeline import (
 from tcp import ConnectionManager
 
 
-CAMERA_INDEX = 0
+DEFAULT_CAMERA_INDEX = 0
+MAX_CAMERA_INDEX_TO_SCAN = 4
 OUTPUT_PATH = "gesture_events.jsonl"
 # TCP config: set TCP_IP to None to disable network streaming
-TCP_IP = "127.0.0.1"  # Use "0.0.0.0" for server to accept any interface
+TCP_IP = None  # TODO: Comment out if you want to enable TCP streaming
+# TCP_IP = "127.0.0.1"  # Use "0.0.0.0" for server to accept any interface
 TCP_PORT = 5000
 TCP_MODE = "server"   # "server" = wait for clients to connect; "client" = connect to a server
 MODEL_PATH = Path(__file__).with_name("hand_landmarker.task")
@@ -45,20 +49,76 @@ HAND_CONNECTIONS = [
 ]
 
 
-def draw_overlay(frame, event_json: str) -> None:
-    wrapped_lines = textwrap.wrap(event_json, width=72)[:3]
-    banner_height = 12 + (len(wrapped_lines) * 24)
-    cv2.rectangle(frame, (0, 0), (frame.shape[1], banner_height), (24, 24, 24), -1)
-    for index, line in enumerate(wrapped_lines):
-        cv2.putText(
-            frame,
-            line,
-            (12, 22 + (index * 24)),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.52,
-            (255, 255, 255),
-            1,
-        )
+STATE_COLORS = {
+    "idle": (180, 180, 180),      # gray
+    "pending": (0, 200, 255),     # orange/yellow
+    "active": (0, 255, 100),      # green
+}
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--camera-index",
+        type=int,
+        default=int(os.environ.get("GESTURE_CAMERA_INDEX", DEFAULT_CAMERA_INDEX)),
+        help=(
+            "Preferred camera index to open. "
+            "Can also be set via GESTURE_CAMERA_INDEX."
+        ),
+    )
+    return parser.parse_args()
+
+
+def open_camera(preferred_index: int) -> tuple[cv2.VideoCapture, int]:
+    candidate_indexes = [preferred_index]
+    candidate_indexes.extend(
+        index
+        for index in range(MAX_CAMERA_INDEX_TO_SCAN + 1)
+        if index != preferred_index
+    )
+
+    for camera_index in candidate_indexes:
+        cap = cv2.VideoCapture(camera_index)
+        if cap.isOpened():
+            return cap, camera_index
+        cap.release()
+
+    tried = ", ".join(str(index) for index in candidate_indexes)
+    raise RuntimeError(
+        "Unable to open any camera. "
+        f"Tried indexes: {tried}. "
+        "Pass --camera-index N or set GESTURE_CAMERA_INDEX."
+    )
+
+
+def draw_overlay(frame, state_info: dict, event_json: str) -> None:
+    state = state_info.get("state", "idle")
+    active = state_info.get("active_command")
+    pending = state_info.get("pending_command")
+    color = STATE_COLORS.get(state, (255, 255, 255))
+
+    if state == "idle":
+        status_text = "Waiting for gesture..."
+    elif state == "pending":
+        status_text = f"Detected: {pending} -- show thumbs up to confirm"
+    elif state == "active":
+        status_text = f"Active command: {active}"
+        if pending:
+            status_text += f"  |  Pending: {pending}"
+    else:
+        status_text = state
+
+    # Status banner
+    cv2.rectangle(frame, (0, 0), (frame.shape[1], 36), (24, 24, 24), -1)
+    cv2.putText(frame, status_text, (12, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.65, color, 2)
+
+    # JSON detail below
+    wrapped_lines = textwrap.wrap(event_json, width=72)[:2]
+    y_offset = 40
+    for line in wrapped_lines:
+        cv2.putText(frame, line, (12, y_offset + 16), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (200, 200, 200), 1)
+        y_offset += 18
 
 
 def draw_hand_landmarks(frame, landmarks) -> None:
@@ -76,12 +136,17 @@ def draw_hand_landmarks(frame, landmarks) -> None:
 
 
 def main() -> None:
+    args = parse_args()
+
     if not MODEL_PATH.exists():
         raise RuntimeError(f"Missing model asset: {MODEL_PATH}")
 
-    cap = cv2.VideoCapture(CAMERA_INDEX)
-    if not cap.isOpened():
-        raise RuntimeError(f"Unable to open camera index {CAMERA_INDEX}")
+    cap, camera_index = open_camera(args.camera_index)
+    if camera_index != args.camera_index:
+        print(
+            f"Preferred camera index {args.camera_index} unavailable; "
+            f"using camera index {camera_index}."
+        )
 
     hand_landmarker = HandLandmarker.create_from_options(
         HandLandmarkerOptions(
@@ -138,13 +203,15 @@ def main() -> None:
                     draw_hand_landmarks(frame, landmarks)
 
                 gesture = smoother.update(raw_gesture)
-                previous_gesture = state_machine.update(gesture)
+                state_info = state_machine.update(gesture)
                 event = {
                     "frame": frame_index,
                     "timestamp": round(timestamp, 3),
                     "gesture": gesture,
                     "raw_gesture": raw_gesture,
-                    "previous_gesture": previous_gesture,
+                    "state": state_info["state"],
+                    "active_command": state_info["active_command"],
+                    "pending_command": state_info["pending_command"],
                     "handedness": handedness,
                     "confidence": round(raw_confidence, 3),
                 }
@@ -153,7 +220,7 @@ def main() -> None:
                 # Stream gesture events over TCP if connected
                 if tcp is not None:
                     tcp.sendall(tcp.encode_str(event_json))
-                draw_overlay(frame, event_json)
+                draw_overlay(frame, state_info, event_json)
                 cv2.imshow("gesture-events", frame)
                 key = cv2.waitKey(1) & 0xFF
                 if key in (27, ord("q")):

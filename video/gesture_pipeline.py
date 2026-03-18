@@ -76,11 +76,76 @@ class GestureSmoother:
         return label
 
 
-class GestureStateMachine:
-    def __init__(self) -> None:
-        self.previous_label = UNKNOWN_GESTURE
+def is_sign_gesture(name: str) -> bool:
+    return name.startswith("sign_") and name != "thumbs_up"
 
-    def update(self, gesture: str) -> str:
-        previous = self.previous_label
-        self.previous_label = gesture
-        return previous
+
+CONFIRM_GESTURE = "thumbs_up"
+TIMEOUT_FRAMES = 30  # ~1s at 30fps
+
+
+class GestureStateMachine:
+    """Confirmation-based state machine.
+
+    IDLE ──(sign_*)──► PENDING ──(thumbs_up)──► ACTIVE
+      ▲                  │  │                      │
+      │       (timeout)  │  │ (different sign_*)    │ (new sign_*)
+      └──────────────────┘  └─► PENDING(new)       └──► PENDING(new)
+    """
+
+    def __init__(self) -> None:
+        self.state: str = "idle"
+        self.pending_gesture: str | None = None
+        self.active_gesture: str | None = None
+        self.unknown_count: int = 0
+
+    def update(self, gesture: str) -> dict:
+        changed = False
+        prev_state = self.state
+
+        if self.state == "idle":
+            if is_sign_gesture(gesture):
+                self.state = "pending"
+                self.pending_gesture = gesture
+                self.unknown_count = 0
+                changed = True
+
+        elif self.state == "pending":
+            if gesture == CONFIRM_GESTURE:
+                self.state = "active"
+                self.active_gesture = self.pending_gesture
+                self.pending_gesture = None
+                self.unknown_count = 0
+                changed = True
+            elif is_sign_gesture(gesture) and gesture != self.pending_gesture:
+                self.pending_gesture = gesture
+                self.unknown_count = 0
+                changed = True
+            elif gesture == UNKNOWN_GESTURE:
+                self.unknown_count += 1
+                if self.unknown_count >= TIMEOUT_FRAMES:
+                    # Timeout: fall back to previous state
+                    if self.active_gesture is not None:
+                        self.state = "active"
+                    else:
+                        self.state = "idle"
+                    self.pending_gesture = None
+                    self.unknown_count = 0
+                    changed = True
+            else:
+                # Same pending gesture or thumbs_up in wrong state — reset counter
+                self.unknown_count = 0
+
+        elif self.state == "active":
+            if is_sign_gesture(gesture) and gesture != self.active_gesture:
+                self.state = "pending"
+                self.pending_gesture = gesture
+                self.unknown_count = 0
+                changed = True
+
+        return {
+            "state": self.state,
+            "active_command": self.active_gesture,
+            "pending_command": self.pending_gesture,
+            "changed": changed,
+        }
