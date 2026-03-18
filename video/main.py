@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import argparse
 import json
+import os
 from pathlib import Path
 import time
 import textwrap
@@ -26,7 +28,8 @@ from gesture_pipeline import (
 from tcp import ConnectionManager
 
 
-CAMERA_INDEX = 1 # TODO: Change to 0 or other index if you have multiple cameras or want to use the default webcam
+DEFAULT_CAMERA_INDEX = 0
+MAX_CAMERA_INDEX_TO_SCAN = 4
 OUTPUT_PATH = "gesture_events.jsonl"
 # TCP config: set TCP_IP to None to disable network streaming
 TCP_IP = None  # TODO: Comment out if you want to enable TCP streaming
@@ -51,6 +54,42 @@ STATE_COLORS = {
     "pending": (0, 200, 255),     # orange/yellow
     "active": (0, 255, 100),      # green
 }
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--camera-index",
+        type=int,
+        default=int(os.environ.get("GESTURE_CAMERA_INDEX", DEFAULT_CAMERA_INDEX)),
+        help=(
+            "Preferred camera index to open. "
+            "Can also be set via GESTURE_CAMERA_INDEX."
+        ),
+    )
+    return parser.parse_args()
+
+
+def open_camera(preferred_index: int) -> tuple[cv2.VideoCapture, int]:
+    candidate_indexes = [preferred_index]
+    candidate_indexes.extend(
+        index
+        for index in range(MAX_CAMERA_INDEX_TO_SCAN + 1)
+        if index != preferred_index
+    )
+
+    for camera_index in candidate_indexes:
+        cap = cv2.VideoCapture(camera_index)
+        if cap.isOpened():
+            return cap, camera_index
+        cap.release()
+
+    tried = ", ".join(str(index) for index in candidate_indexes)
+    raise RuntimeError(
+        "Unable to open any camera. "
+        f"Tried indexes: {tried}. "
+        "Pass --camera-index N or set GESTURE_CAMERA_INDEX."
+    )
 
 
 def draw_overlay(frame, state_info: dict, event_json: str) -> None:
@@ -97,12 +136,17 @@ def draw_hand_landmarks(frame, landmarks) -> None:
 
 
 def main() -> None:
+    args = parse_args()
+
     if not MODEL_PATH.exists():
         raise RuntimeError(f"Missing model asset: {MODEL_PATH}")
 
-    cap = cv2.VideoCapture(CAMERA_INDEX)
-    if not cap.isOpened():
-        raise RuntimeError(f"Unable to open camera index {CAMERA_INDEX}")
+    cap, camera_index = open_camera(args.camera_index)
+    if camera_index != args.camera_index:
+        print(
+            f"Preferred camera index {args.camera_index} unavailable; "
+            f"using camera index {camera_index}."
+        )
 
     hand_landmarker = HandLandmarker.create_from_options(
         HandLandmarkerOptions(
