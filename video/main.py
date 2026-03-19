@@ -28,13 +28,14 @@ from gesture_pipeline import (
 from tcp import ConnectionManager
 
 
-DEFAULT_CAMERA_INDEX = 0
+DEFAULT_CAMERA_INDEX = 1
 MAX_CAMERA_INDEX_TO_SCAN = 4
 OUTPUT_PATH = "gesture_events.jsonl"
 # TCP config: set TCP_IP to None to disable network streaming
 TCP_IP = "127.0.0.1"  # Use "0.0.0.0" for server to accept any interface
 TCP_PORT = 5000
-TCP_MODE = "server"   # "server" = wait for clients to connect; "client" = connect to a server
+# "server" = wait for clients to connect; "client" = connect to a server
+TCP_MODE = "server"
 MODEL_PATH = Path(__file__).with_name("hand_landmarker.task")
 WINDOW_SIZE = 5
 MIN_VOTES = 3
@@ -60,7 +61,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--camera-index",
         type=int,
-        default=int(os.environ.get("GESTURE_CAMERA_INDEX", DEFAULT_CAMERA_INDEX)),
+        default=int(os.environ.get(
+            "GESTURE_CAMERA_INDEX", DEFAULT_CAMERA_INDEX)),
         help=(
             "Preferred camera index to open. "
             "Can also be set via GESTURE_CAMERA_INDEX."
@@ -110,13 +112,15 @@ def draw_overlay(frame, state_info: dict, event_json: str) -> None:
 
     # Status banner
     cv2.rectangle(frame, (0, 0), (frame.shape[1], 36), (24, 24, 24), -1)
-    cv2.putText(frame, status_text, (12, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.65, color, 2)
+    cv2.putText(frame, status_text, (12, 26),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.65, color, 2)
 
     # JSON detail below
     wrapped_lines = textwrap.wrap(event_json, width=72)[:2]
     y_offset = 40
     for line in wrapped_lines:
-        cv2.putText(frame, line, (12, y_offset + 16), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (200, 200, 200), 1)
+        cv2.putText(frame, line, (12, y_offset + 16),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.42, (200, 200, 200), 1)
         y_offset += 18
 
 
@@ -176,7 +180,8 @@ def main() -> None:
             while True:
                 ok, frame = cap.read()
                 if not ok:
-                    raise RuntimeError("Unable to read a frame from the webcam")
+                    raise RuntimeError(
+                        "Unable to read a frame from the webcam")
 
                 frame = cv2.flip(frame, 1)
                 timestamp = time.time()
