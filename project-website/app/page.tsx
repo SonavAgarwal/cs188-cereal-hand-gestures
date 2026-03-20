@@ -1,4 +1,5 @@
 import DemoCarousel from "./components/DemoCarousel";
+import BrowserGestureDemo from "./components/gesture-demo/BrowserGestureDemo";
 import HeroVideoCarousel from "./components/HeroVideoCarousel";
 
 const heroSlides = [
@@ -91,6 +92,17 @@ export default function Home() {
                     smoother to filter noise, and a confirmation state machine to prevent
                     accidental commands.
                 </p>
+            </section>
+
+            <section className="mx-auto max-w-6xl border-t border-gray-200 px-6 py-16">
+                <div className="mx-auto max-w-5xl">
+                    <h2 className="text-3xl font-semibold text-gray-900">
+                        Try the recognizer in your browser
+                    </h2>
+                    <div className="mt-10">
+                        <BrowserGestureDemo />
+                    </div>
+                </div>
             </section>
 
             <section className="mx-auto max-w-6xl border-t border-gray-200 px-6 py-16">
