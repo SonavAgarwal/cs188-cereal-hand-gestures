@@ -19,31 +19,31 @@ const heroSlides = [
 const demoVideos = [
     {
         description:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Cras justo odio, dapibus ac facilisis in, egestas eget quam.",
-        title: "Wrong Cereal 01",
-        videoId: "9chi9thsd1Q",
-    },
-    {
-        description:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse potenti. Nam sagittis, arcu non feugiat placerat, erat purus pulvinar nibh, eget aliquet nibh dui ac justo.",
-        title: "Wrong Cereal 02",
-        videoId: "UThUtrm538k",
-    },
-    {
-        description:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum id ligula porta felis euismod semper. Maecenas faucibus mollis interdum, nullam quis risus eget urna mollis ornare vel eu leo.",
-        title: "Correction",
+            "In this demo, Travis changes the target cereal, and we see the robot make multiple attempts to pick up the correct one before finally succeeding.",
+        title: "Recovering from Failed Grasps",
         videoId: "vbRsJyF9t2E",
     },
     {
         description:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur blandit tempus porttitor. Donec sed odio dui, sed posuere consectetur est at lobortis.",
+            "Here, Travis signs 'K' for Cocoa Krispies but the robot mistakenly picks up the Froot Loops instead.",
+        title: "Problem with Distinguishing Cereals",
+        videoId: "9chi9thsd1Q",
+    },
+    {
+        description:
+            "Here, Travis signs 'F' for Fruit Loops but the robot picks up the Cocoa Krispies instead.",
+        title: "Wrong Cereal 2",
+        videoId: "UThUtrm538k",
+    },
+    {
+        description:
+            "Here, the robot misses the bowl as it pours the cereal, demonstrating some of the caveats of the fine-tuning examples that assume a bowl position.",
         title: "Messy Pour",
         videoId: "0UzVgYxCcEE",
     },
     {
         description:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec id elit non mi porta gravida at eget metus. Sed posuere consectetur est at lobortis, aenean lacinia bibendum nulla sed consectetur.",
+            "Here, the robot gets stuck in a small cycle and becomes unresponsive to further commands.",
         title: "Command Stall",
         videoId: "_QItaZAjzgc",
     },
