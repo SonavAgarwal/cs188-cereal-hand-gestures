@@ -68,3 +68,8 @@ pnpm dev
 ## How the Two Halves Connect
 
 The Python `video/` pipeline streams gesture events over TCP (default: `127.0.0.1:5000`). The `project-website/` frontend can connect to this stream to display live gesture data in the browser. Run `main.py` first to start the TCP server, then start the Next.js dev server.
+
+
+## Additional Modules
+
+We also utilize Physical Intelligence's openpi repository for fine-tuning pi0.5. Additionally, we use the DROID repository for low level control of the Franka Arm. The file `openpi_inference_dynamic_instructions.py` is our pipeline for running inference on our fine-tuned model. 
