@@ -30,6 +30,7 @@ type DesktopCard = {
   index: number;
   initialSlot?: CardSlot;
   item: DemoItem;
+  key: string;
   slot: CardSlot;
 };
 
@@ -288,9 +289,19 @@ export default function DemoCarousel({ items }: { items: DemoItem[] }) {
       const nextIndex = mod(activeIndex + 1, items.length);
 
       return [
-        { index: previousIndex, item: items[previousIndex], slot: "left" },
-        { index: activeIndex, item: activeItem, slot: "center" },
-        { index: nextIndex, item: items[nextIndex], slot: "right" },
+        {
+          index: previousIndex,
+          item: items[previousIndex],
+          key: items[previousIndex].videoId,
+          slot: "left",
+        },
+        { index: activeIndex, item: activeItem, key: activeItem.videoId, slot: "center" },
+        {
+          index: nextIndex,
+          item: items[nextIndex],
+          key: items[nextIndex].videoId,
+          slot: "right",
+        },
       ];
     }
 
@@ -299,13 +310,24 @@ export default function DemoCarousel({ items }: { items: DemoItem[] }) {
       const enteringRightIndex = mod(activeIndex + 1, items.length);
 
       return [
-        { index: exitingLeftIndex, item: items[exitingLeftIndex], slot: "exitLeft" },
-        { index: transitionState.previousActiveIndex, item: items[transitionState.previousActiveIndex], slot: "left" },
-        { index: activeIndex, item: activeItem, slot: "center" },
+        {
+          index: exitingLeftIndex,
+          item: items[exitingLeftIndex],
+          key: `exit-left-${transitionState.previousActiveIndex}-${items[exitingLeftIndex].videoId}`,
+          slot: "exitLeft",
+        },
+        {
+          index: transitionState.previousActiveIndex,
+          item: items[transitionState.previousActiveIndex],
+          key: items[transitionState.previousActiveIndex].videoId,
+          slot: "left",
+        },
+        { index: activeIndex, item: activeItem, key: activeItem.videoId, slot: "center" },
         {
           index: enteringRightIndex,
           initialSlot: "enterRight",
           item: items[enteringRightIndex],
+          key: `enter-right-${transitionState.previousActiveIndex}-${items[enteringRightIndex].videoId}`,
           slot: "right",
         },
       ];
@@ -319,11 +341,22 @@ export default function DemoCarousel({ items }: { items: DemoItem[] }) {
         index: enteringLeftIndex,
         initialSlot: "enterLeft",
         item: items[enteringLeftIndex],
+        key: `enter-left-${transitionState.previousActiveIndex}-${items[enteringLeftIndex].videoId}`,
         slot: "left",
       },
-      { index: activeIndex, item: activeItem, slot: "center" },
-      { index: transitionState.previousActiveIndex, item: items[transitionState.previousActiveIndex], slot: "right" },
-      { index: exitingRightIndex, item: items[exitingRightIndex], slot: "exitRight" },
+      { index: activeIndex, item: activeItem, key: activeItem.videoId, slot: "center" },
+      {
+        index: transitionState.previousActiveIndex,
+        item: items[transitionState.previousActiveIndex],
+        key: items[transitionState.previousActiveIndex].videoId,
+        slot: "right",
+      },
+      {
+        index: exitingRightIndex,
+        item: items[exitingRightIndex],
+        key: `exit-right-${transitionState.previousActiveIndex}-${items[exitingRightIndex].videoId}`,
+        slot: "exitRight",
+      },
     ];
   })();
 
@@ -354,9 +387,9 @@ export default function DemoCarousel({ items }: { items: DemoItem[] }) {
       </div>
 
       <div className="relative hidden h-[18rem] md:block lg:h-[24rem]">
-        {desktopCards.map(({ index, initialSlot, item, slot }) => (
+        {desktopCards.map(({ index, initialSlot, item, key, slot }) => (
           <DemoFrame
-            key={`${item.videoId}-${slot}`}
+            key={key}
             index={index}
             initialSlot={initialSlot}
             item={item}
