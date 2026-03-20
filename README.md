@@ -7,12 +7,9 @@ This folder contains the CS188 final project. The main repo lives in `cs188-cere
 ## Folder Structure
 
 ```
-final project/
-├── cs188-cereal-hand-gestures/   # Main git repo (cloned from GitHub)
-│   ├── video/                    # Python gesture recognition pipeline
-│   └── project-website/          # Next.js frontend / demo site
-├── cs188-cereal-hand-gestures-corrupted-backup/  # Backup copy (ignore)
-└── cv.py                         # Scratch / experimental script
+cs188-cereal-hand-gestures/   # Main git repo (cloned from GitHub)
+├── video/                    # Python gesture recognition pipeline
+└── project-website/          # demo website
 ```
 
 ---
@@ -24,6 +21,7 @@ final project/
 **Stack:** Python, OpenCV, MediaPipe
 
 **Data flow:**
+
 ```
 Webcam → OpenCV → MediaPipe hand landmarks → gesture matching → smoothing → JSONL file + TCP stream
 ```
@@ -40,6 +38,7 @@ Key files:
 | `gesture_events.jsonl` | Output file written at runtime |
 
 **To run:**
+
 ```bash
 cd cs188-cereal-hand-gestures/video
 python3 -m venv .venv && source .venv/bin/activate
@@ -56,6 +55,7 @@ python3 main.py
 **Stack:** Next.js (TypeScript), Tailwind CSS
 
 **To run:**
+
 ```bash
 cd cs188-cereal-hand-gestures/project-website
 pnpm install

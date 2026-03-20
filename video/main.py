@@ -32,8 +32,8 @@ DEFAULT_CAMERA_INDEX = 1
 MAX_CAMERA_INDEX_TO_SCAN = 4
 OUTPUT_PATH = "gesture_events.jsonl"
 # TCP config: set TCP_IP to None to disable network streaming
-TCP_IP = "127.0.0.1"  # Use "0.0.0.0" for server to accept any interface
-TCP_PORT = 5000
+TCP_IP = "0.0.0.0"  # Use "0.0.0.0" for server to accept any interface
+TCP_PORT = 5001
 # "server" = wait for clients to connect; "client" = connect to a server
 TCP_MODE = "server"
 MODEL_PATH = Path(__file__).with_name("hand_landmarker.task")
