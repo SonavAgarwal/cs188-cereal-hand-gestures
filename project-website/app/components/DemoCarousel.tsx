@@ -310,12 +310,13 @@ export default function DemoCarousel({ items }: { items: DemoItem[] }) {
             const enteringRightIndex = mod(activeIndex + 1, items.length);
 
             return [
-                {
-                    index: exitingLeftIndex,
-                    item: items[exitingLeftIndex],
-                    key: `exit-left-${transitionState.previousActiveIndex}-${items[exitingLeftIndex].videoId}`,
-                    slot: "exitLeft",
-                },
+        {
+          index: exitingLeftIndex,
+          initialSlot: "left",
+          item: items[exitingLeftIndex],
+          key: `exit-left-${transitionState.previousActiveIndex}-${items[exitingLeftIndex].videoId}`,
+          slot: "exitLeft",
+        },
                 {
                     index: transitionState.previousActiveIndex,
                     item: items[transitionState.previousActiveIndex],
@@ -351,12 +352,13 @@ export default function DemoCarousel({ items }: { items: DemoItem[] }) {
                 key: items[transitionState.previousActiveIndex].videoId,
                 slot: "right",
             },
-            {
-                index: exitingRightIndex,
-                item: items[exitingRightIndex],
-                key: `exit-right-${transitionState.previousActiveIndex}-${items[exitingRightIndex].videoId}`,
-                slot: "exitRight",
-            },
+      {
+        index: exitingRightIndex,
+        initialSlot: "right",
+        item: items[exitingRightIndex],
+        key: `exit-right-${transitionState.previousActiveIndex}-${items[exitingRightIndex].videoId}`,
+        slot: "exitRight",
+      },
         ];
     })();
 
