@@ -95,13 +95,13 @@ export default function Home() {
             </section>
 
             <section className="mx-auto max-w-6xl border-t border-gray-200 px-6 py-16">
-                <div className="mx-auto max-w-5xl">
+                <div className="mx-auto max-w-4xl px-6">
                     <h2 className="text-3xl font-semibold text-gray-900">
-                        Try the recognizer in your browser
+                        Try the ASL Decoder
                     </h2>
-                    <div className="mt-10">
-                        <BrowserGestureDemo />
-                    </div>
+                </div>
+                <div className="mt-10">
+                    <BrowserGestureDemo />
                 </div>
             </section>
 

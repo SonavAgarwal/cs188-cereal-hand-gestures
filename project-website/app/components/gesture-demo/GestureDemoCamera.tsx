@@ -61,7 +61,7 @@ export default function GestureDemoCamera({
                                 <button
                                     className="rounded-full bg-gray-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed cursor-pointer"
                                     disabled={cameraPhase === "loading"}
-                                    onClick={onStart}
+                                    onClick={() => onStart()}
                                     type="button"
                                 >
                                     {cameraPhase === "loading" ? "Starting..." : "Start Camera"}
@@ -79,7 +79,7 @@ export default function GestureDemoCamera({
                     {cameraPhase === "ready" ? (
                         <button
                             className="rounded-full border border-gray-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-gray-700 transition hover:border-gray-400 hover:bg-gray-50"
-                            onClick={onStop}
+                            onClick={() => onStop()}
                             type="button"
                         >
                             Stop

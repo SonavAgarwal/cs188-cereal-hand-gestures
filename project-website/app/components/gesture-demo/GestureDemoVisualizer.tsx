@@ -69,15 +69,17 @@ export default function GestureDemoVisualizer({
                                     </p>
                                 </div>
                             </div>
-                            <div
-                                className="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
-                                style={{
-                                    backgroundColor: isActive ? "#dcfce7" : isPending ? "#fef3c7" : "#f3f4f6",
-                                    color: isActive ? "#166534" : isPending ? "#92400e" : "#4b5563",
-                                }}
-                            >
-                                {isActive ? "Confirmed" : isPending ? "Waiting" : "Idle"}
-                            </div>
+                            {(isActive || isPending) &&
+                                <div
+                                    className="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
+                                    style={{
+                                        backgroundColor: isActive ? "#dcfce7" : isPending ? "#fef3c7" : "#f3f4f6",
+                                        color: isActive ? "#166534" : isPending ? "#92400e" : "#4b5563",
+                                    }}
+                                >
+                                    {isActive ? "Confirmed" : isPending ? "Waiting" : "Idle"}
+                                </div>
+                            }
                         </div>
                     </div>
                 );
